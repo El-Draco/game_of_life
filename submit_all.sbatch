@@ -53,7 +53,7 @@ echo "  PART 1/2: Running Performance Benchmark"
 echo "════════════════════════════════════════════════════════"
 echo ""
 
-BENCH_GRID=4096
+BENCH_GRID=512
 BENCH_STEPS=500
 BENCH_PATTERN="glider_gun"
 BENCH_SEED=42
