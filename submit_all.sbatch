@@ -1,20 +1,20 @@
 #!/bin/bash
 #SBATCH --nodes=1                        # Single node
-#SBATCH --ntasks-per-node=52             # All 52 cores
+#SBATCH --ntasks-per-node=32             # 32 cores
 #SBATCH --exclusive                      # Exclusive node access
-#SBATCH --job-name=life_full             # Job name
-#SBATCH --time=02:00:00                  # 2 hours (faster with 52 cores)
+#SBATCH --job-name=life_prod             # Job name
+#SBATCH --time=02:00:00                  # 2 hours
 #SBATCH --partition=prod                 # Partition
 #SBATCH --account=teach0026              # Project account
-#SBATCH --output=life_full.%j.out        # Standard output
-#SBATCH --error=life_full.%j.err         # Error output
+#SBATCH --output=life_prod.%j.out        # Standard output
+#SBATCH --error=life_prod.%j.err         # Error output
 
-# Conway's Game of Life - Complete Run
-# Runs BOTH benchmark and production simulation in one job
+# Conway's Game of Life - Production Run
+# Runs the main simulation and saves snapshots
 # Usage: sbatch submit_all.sbatch
 
 echo "════════════════════════════════════════════════════════"
-echo "  Conway's Game of Life - Complete HPC Run"
+echo "  Conway's Game of Life - Production Run"
 echo "════════════════════════════════════════════════════════"
 echo "Job ID: $SLURM_JOB_ID"
 echo "Nodes: $SLURM_JOB_NUM_NODES"
@@ -23,7 +23,7 @@ echo "Start time: $(date)"
 echo ""
 
 # Create directories
-mkdir -p logs snapshots benchmark_data
+mkdir -p logs snapshots
 
 # Load modules (Almesbar standard modules)
 module purge
@@ -45,91 +45,10 @@ echo "✓ Environment ready"
 echo ""
 
 # ═══════════════════════════════════════════════════════════
-# PART 1: BENCHMARK - Performance Testing
+# PRODUCTION RUN - Generate Snapshots for Visualization
 # ═══════════════════════════════════════════════════════════
 
-echo "════════════════════════════════════════════════════════"
-echo "  PART 1/2: Running Performance Benchmark"
-echo "════════════════════════════════════════════════════════"
-echo ""
-
-BENCH_GRID=512
-BENCH_STEPS=500
-BENCH_PATTERN="glider_gun"
-BENCH_SEED=42
-
-echo "Benchmark configuration:"
-echo "  Grid: ${BENCH_GRID}x${BENCH_GRID}"
-echo "  Steps: ${BENCH_STEPS}"
-echo "  Pattern: ${BENCH_PATTERN}"
-echo ""
-
-# Create results file
-echo "# ranks,time_seconds,speedup,efficiency" > benchmark_data/results.txt
-
-BASELINE_TIME=0
-
-# Test different process counts (up to 52)
-for NP in 1 2 4 8 16 32 52; do
-    if [ ${NP} -gt $SLURM_NTASKS ]; then
-        echo "Skipping np=${NP} (exceeds allocated tasks: $SLURM_NTASKS)"
-        continue
-    fi
-    
-    echo "─────────────────────────────────────────"
-    echo "Testing with np=${NP}..."
-    
-    OUTPUT_DIR="benchmark_data/np${NP}"
-    
-    mpirun -np ${NP} python life_mpi.py \
-        --decomp rows \
-        --nx ${BENCH_GRID} --ny ${BENCH_GRID} \
-        --steps ${BENCH_STEPS} \
-        --pattern ${BENCH_PATTERN} \
-        --seed ${BENCH_SEED} \
-        --output-dir ${OUTPUT_DIR} \
-        --save-interval 0 \
-        --benchmark > benchmark_data/bench_np${NP}.log 2>&1
-    
-    TIME=$(grep "^BENCHMARK: ranks=" benchmark_data/bench_np${NP}.log | sed 's/.*time=\([0-9.]*\).*/\1/')
-    CHECKSUM=$(grep "^BENCHMARK: checksum=" benchmark_data/bench_np${NP}.log | sed 's/.*checksum=\([0-9]*\).*/\1/')
-    
-    if [ ${NP} -eq 1 ]; then
-        BASELINE_TIME=${TIME}
-        SPEEDUP=1.00
-        EFFICIENCY=100.0
-    else
-        SPEEDUP=$(echo "scale=2; ${BASELINE_TIME} / ${TIME}" | bc)
-        EFFICIENCY=$(echo "scale=1; (${SPEEDUP} / ${NP}) * 100" | bc)
-    fi
-    
-    echo "  Time: ${TIME}s"
-    echo "  Speedup: ${SPEEDUP}x"
-    echo "  Efficiency: ${EFFICIENCY}%"
-    echo "  Checksum: ${CHECKSUM}"
-    
-    echo "${NP},${TIME},${SPEEDUP},${EFFICIENCY}" >> benchmark_data/results.txt
-    
-    # Clean up benchmark output (keep logs, remove snapshots)
-    rm -rf ${OUTPUT_DIR}
-done
-
-echo ""
-echo "✓ Benchmark complete!"
-echo ""
-echo "Benchmark Results Summary:"
-echo "─────────────────────────────────────────"
-cat benchmark_data/results.txt
-echo "─────────────────────────────────────────"
-echo ""
-
-# ═══════════════════════════════════════════════════════════
-# PART 2: PRODUCTION RUN - Generate Snapshots for Visualization
-# ═══════════════════════════════════════════════════════════
-
-echo "════════════════════════════════════════════════════════"
-echo "  PART 2/2: Production Simulation with Snapshots"
-echo "════════════════════════════════════════════════════════"
+echo "Starting production simulation..."
 echo ""
 
 PROD_NX=16384
@@ -174,24 +93,23 @@ echo ""
 echo "End time: $(date)"
 echo ""
 echo "Generated files:"
-echo "  📊 Benchmark results: benchmark_data/results.txt"
-echo "  📊 Benchmark logs:    benchmark_data/bench_np*.log"
-echo "  💾 Snapshots:         snapshots/step_*.npz"
+echo "  💾 Snapshots: snapshots/step_*.npz"
+echo "  📝 Logs:      life_prod.$SLURM_JOB_ID.out/err"
 echo ""
-echo "Next steps (run on login node or locally):"
+echo "Snapshot count:"
+ls -1 snapshots/*.npz | wc -l
 echo ""
-echo "1. Download benchmark results:"
-echo "   scp user@hpc:~/dist_sys/benchmark_data/results.txt ."
+echo "Next steps (run locally after downloading snapshots):"
 echo ""
-echo "2. Create simple animation:"
+echo "1. Download snapshots:"
+echo "   scp -r user@almesbar:~/dist_sys/snapshots ."
+echo ""
+echo "2. Create animation:"
 echo "   python visualize.py --input-dir snapshots --output animation.gif"
 echo ""
 echo "3. Create heatmap visualization:"
 echo "   python visualize.py --input-dir snapshots --output heatmap.gif \\"
 echo "       --show-ranks --ranks $SLURM_NTASKS --fps 5"
-echo ""
-echo "4. Plot benchmark results (optional):"
-echo "   python plot_speedup.py benchmark_data/results.txt"
 echo ""
 echo "════════════════════════════════════════════════════════"
 
