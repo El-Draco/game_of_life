@@ -6,7 +6,7 @@
 #SBATCH --ntasks-per-node=8
 #SBATCH --time=01:00:00
 #SBATCH --partition=prod
-#SBATCH --account=hpc_project_code
+#SBATCH --account=100068001
 
 # Conway's Game of Life - MPI Parallel Simulation
 # Usage: sbatch submit.sbatch
