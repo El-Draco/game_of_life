@@ -1,12 +1,13 @@
 #!/bin/bash
-#SBATCH --job-name=life_full
-#SBATCH --output=logs/%x-%j.out
-#SBATCH --error=logs/%x-%j.err
-#SBATCH --nodes=4
-#SBATCH --ntasks-per-node=8
-#SBATCH --time=04:00:00
-#SBATCH --partition=prod
-#SBATCH --account=teach0026
+#SBATCH --nodes=1                        # Single node
+#SBATCH --ntasks-per-node=52             # All 52 cores
+#SBATCH --exclusive                      # Exclusive node access
+#SBATCH --job-name=life_full             # Job name
+#SBATCH --time=02:00:00                  # 2 hours (faster with 52 cores)
+#SBATCH --partition=prod                 # Partition
+#SBATCH --account=teach0026              # Project account
+#SBATCH --output=life_full.%j.out        # Standard output
+#SBATCH --error=life_full.%j.err         # Error output
 
 # Conway's Game of Life - Complete Run
 # Runs BOTH benchmark and production simulation in one job
@@ -68,8 +69,8 @@ echo "# ranks,time_seconds,speedup,efficiency" > benchmark_data/results.txt
 
 BASELINE_TIME=0
 
-# Test different process counts
-for NP in 1 2 4 8 16 32; do
+# Test different process counts (up to 52)
+for NP in 1 2 4 8 16 32 52; do
     if [ ${NP} -gt $SLURM_NTASKS ]; then
         echo "Skipping np=${NP} (exceeds allocated tasks: $SLURM_NTASKS)"
         continue

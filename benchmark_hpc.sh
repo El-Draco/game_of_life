@@ -1,12 +1,13 @@
 #!/bin/bash
-#SBATCH --job-name=life_bench
-#SBATCH --output=logs/%x-%j.out
-#SBATCH --error=logs/%x-%j.err
-#SBATCH --nodes=4
-#SBATCH --ntasks-per-node=8
-#SBATCH --time=01:00:00
-#SBATCH --partition=prod
-#SBATCH --account=teach0026
+#SBATCH --nodes=1                        # Single node
+#SBATCH --ntasks-per-node=52             # All 52 cores
+#SBATCH --exclusive                      # Exclusive node access
+#SBATCH --job-name=life_bench            # Job name
+#SBATCH --time=01:30:00                  # Time limit
+#SBATCH --partition=prod                 # Partition
+#SBATCH --account=teach0026              # Project account
+#SBATCH --output=life_bench.%j.out       # Standard output
+#SBATCH --error=life_bench.%j.err        # Error output
 
 # HPC Performance Benchmarking
 # Measures performance on large grids with many processes
@@ -48,10 +49,10 @@ echo "# ranks,time_seconds,speedup,efficiency" > benchmark_hpc_results.txt
 
 BASELINE_TIME=0
 
-# Test with different process counts
-for NP in 1 2 4 8 16 32; do
-    if [ ${NP} -gt $((SLURM_JOB_NUM_NODES * SLURM_NTASKS_PER_NODE)) ]; then
-        echo "Skipping np=${NP} (exceeds allocated resources)"
+# Test with different process counts (up to 52)
+for NP in 1 2 4 8 16 32 52; do
+    if [ ${NP} -gt $SLURM_NTASKS ]; then
+        echo "Skipping np=${NP} (exceeds allocated tasks: $SLURM_NTASKS)"
         continue
     fi
     

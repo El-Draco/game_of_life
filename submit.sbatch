@@ -1,6 +1,7 @@
 #!/bin/bash
-#SBATCH --nodes=4                        # Number of compute nodes
-#SBATCH --ntasks-per-node=8              # Tasks (MPI processes) per node
+#SBATCH --nodes=1                        # Number of compute nodes
+#SBATCH --ntasks-per-node=52             # All 52 cores on Almesbar node
+#SBATCH --exclusive                      # Exclusive node access (no interference)
 #SBATCH --job-name=life_mpi              # Job name
 #SBATCH --time=01:00:00                  # Time limit
 #SBATCH --partition=prod                 # Partition (queue)
