@@ -1,0 +1,44 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+
+# Virtual environments
+.venv/
+venv/
+env/
+ENV/
+
+# Output directories
+snapshots/
+frames/
+logs/
+benchmark_local/
+benchmark_data/
+test_correctness/
+
+# Visualization outputs
+*.gif
+*.png
+temp_frame_*.png
+
+# Data files
+*.npz
+*.log
+*.tmp
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Documents (optional - keep if needed)
+*.docx
+*.pdf
