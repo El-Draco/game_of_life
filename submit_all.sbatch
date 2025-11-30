@@ -67,7 +67,7 @@ echo "  MPI processes: $SLURM_NTASKS"
 echo ""
 
 which mpirun
-mpirun python life_mpi.py \
+mpirun -np $SLURM_NTASKS python life_mpi.py \
     --nx ${PROD_NX} \
     --ny ${PROD_NY} \
     --steps ${PROD_STEPS} \
