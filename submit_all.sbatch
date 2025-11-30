@@ -1,7 +1,7 @@
 #!/bin/bash
 #SBATCH --job-name=life_full
-#SBATCH --output=logs/life_full_%j.out
-#SBATCH --error=logs/life_full_%j.err
+#SBATCH --output=logs/%x-%j.out
+#SBATCH --error=logs/%x-%j.err
 #SBATCH --nodes=4
 #SBATCH --ntasks-per-node=8
 #SBATCH --time=04:00:00

@@ -1,7 +1,7 @@
 #!/bin/bash
 #SBATCH --job-name=life_mpi
-#SBATCH --output=logs/life_%j.out
-#SBATCH --error=logs/life_%j.err
+#SBATCH --output=logs/%x-%j.out
+#SBATCH --error=logs/%x-%j.err
 #SBATCH --nodes=4
 #SBATCH --ntasks-per-node=8
 #SBATCH --time=01:00:00

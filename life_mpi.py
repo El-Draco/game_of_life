@@ -39,6 +39,11 @@ def parse_args():
         help="Initial pattern (default: glider_gun)"
     )
     parser.add_argument(
+        "--decomp", type=str, default="rows",
+        choices=["rows"],
+        help="Decomposition strategy: 'rows' for 1-D row decomposition (default: rows)"
+    )
+    parser.add_argument(
         "--output-dir", type=str, default="snapshots",
         help="Directory to save snapshots (default: snapshots)"
     )

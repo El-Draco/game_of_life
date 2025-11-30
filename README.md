@@ -120,6 +120,22 @@ See **`USAGE.md`** for:
 
 ## 🛠️ Technical Details
 
+### Decomposition Strategy
+
+**Why 1-D Row Decomposition?**
+
+We chose 1-D row decomposition for several practical reasons:
+
+1. **Simplicity** - Each rank owns a contiguous block of rows, making data distribution straightforward
+2. **Minimal Communication** - Only 2 neighbors per rank (top and bottom), reducing message count
+3. **Cache Efficiency** - Row-major storage in numpy means contiguous memory access patterns
+4. **Good Scaling** - Suitable for grids where `rows >> num_ranks` (e.g., 16K rows, 32 ranks = 512 rows/rank)
+5. **Load Balance** - Easy to distribute remainder rows evenly when grid doesn't divide perfectly
+
+**When would 2-D be better?** For very large rank counts (100+) or highly non-square grids, 2-D decomposition reduces per-rank communication overhead at the cost of implementation complexity.
+
+**Our implementation:** Each rank handles `⌈ny/size⌉` rows plus 2 halo rows (top/bottom), exchanges boundaries each step with toroidal wraparound.
+
 ### MPI Operations Used:
 - `COMM_WORLD` - Communicator
 - `Get_rank()`, `Get_size()` - Process identification
