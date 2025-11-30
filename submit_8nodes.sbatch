@@ -25,7 +25,7 @@ echo "Start time: $(date)"
 echo ""
 
 # Create directories
-mkdir -p logs snapshots
+mkdir -p logs snapshots_8nodes
 
 # Load modules (Almesbar standard modules)
 module purge
@@ -77,7 +77,7 @@ mpirun -np $SLURM_NTASKS python life_mpi.py \
     --decomp rows \
     --pattern ${PROD_PATTERN} \
     --seed ${PROD_SEED} \
-    --output-dir snapshots \
+    --output-dir snapshots_8nodes \
     --save-interval ${PROD_INTERVAL} \
     --benchmark
 
@@ -96,11 +96,11 @@ echo ""
 echo "End time: $(date)"
 echo ""
 echo "Generated files:"
-echo "  💾 Snapshots: snapshots/step_*.npz"
+echo "  💾 Snapshots: snapshots_8nodes/step_*.npz"
 echo "  📝 Logs:      life_8nodes.$SLURM_JOB_ID.out/err"
 echo ""
 echo "Snapshot count:"
-ls -1 snapshots/*.npz 2>/dev/null | wc -l
+ls -1 snapshots_8nodes/*.npz 2>/dev/null | wc -l
 echo ""
 echo "Total snapshots created: $(ls -1 snapshots/*.npz 2>/dev/null | wc -l)"
 echo "Grid size: ${PROD_NX}×${PROD_NY}"
@@ -110,13 +110,13 @@ echo ""
 echo "Next steps (run locally after downloading snapshots):"
 echo ""
 echo "1. Download snapshots:"
-echo "   scp -r username@almesbar:~/dist_sys/snapshots ."
+echo "   scp -r username@almesbar:~/dist_sys/snapshots_8nodes ."
 echo ""
 echo "2. Create animation:"
-echo "   python visualize.py --input-dir snapshots --output animation.gif"
+echo "   python visualize.py --input-dir snapshots_8nodes --output 8node_animation.gif"
 echo ""
 echo "3. Create heatmap visualization:"
-echo "   python visualize.py --input-dir snapshots --output heatmap.gif \\"
+echo "   python visualize.py --input-dir snapshots_8nodes --output 8node_heatmap.gif \\"
 echo "       --show-ranks --ranks $SLURM_NTASKS --fps 5"
 echo ""
 echo "════════════════════════════════════════════════════════"
