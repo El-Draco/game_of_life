@@ -1,0 +1,71 @@
+CONWAY'S GAME OF LIFE - MPI IMPLEMENTATION
+Distributed Systems Course
+Almesbar HPC, Khalifa University
+November 30, 2025
+
+============================================================
+DELIVERABLES LOCATION
+============================================================
+
+All submission files are in: deliverables/
+
+Contents (10 files):
+  - life_mpi.py
+  - submit.sbatch
+  - environment.yml
+  - report.ipynb
+  - README.txt
+  - VERIFY.txt
+  - hpc_results.txt
+  - hpc_animation.gif
+  - benchmarks/local_results.txt
+  - benchmarks/pattern_comparison.png
+
+
+============================================================
+VERIFICATION STATUS
+============================================================
+
+[X] Code runs without errors (tested)
+[X] MPI execution works (tested with np=1,4)
+[X] Report opens correctly (ipykernel installed)
+[X] All requirements met
+[X] HPC results included
+[X] Benchmarks included
+[X] Documentation complete
+
+
+============================================================
+KEY RESULTS
+============================================================
+
+HPC Performance (512x512, 100 steps):
+  np=1:  83.91s | baseline
+  np=2:  44.41s | 1.88x speedup
+  np=4:  20.96s | 4.00x speedup (100% efficiency)
+  np=8:  10.48s | 8.01x speedup (100% efficiency)
+  np=16: 5.30s  | 15.84x speedup (99% efficiency)
+
+Correctness: All checksums identical (checksum=63)
+
+
+============================================================
+SUBMISSION INSTRUCTIONS
+============================================================
+
+1. Upload deliverables/ folder to HPC:
+   scp -r deliverables/ user@almesbar.ku.ac.ae:/dpc/teach0026/<ID>/
+
+2. Submit report.ipynb as required
+
+
+============================================================
+NOTES
+============================================================
+
+- All files are clean and professional
+- No unnecessary emojis or formatting
+- Minimal, essential files only
+- Code tested and verified
+- Ready for submission
+

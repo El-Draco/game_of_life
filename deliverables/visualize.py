@@ -27,7 +27,7 @@ def parse_args():
     parser = argparse.ArgumentParser(
         description="Visualize Game of Life snapshots with expanding view"
     )
-    parser.add_argument("--input-dir", type=str, default="snapshots",
+    parser.add_argument("--input-dir", type=str, default="hpc_snapshots",
                        help="Directory containing snapshots")
     parser.add_argument("--output", type=str, required=True,
                        help="Output filename (e.g., animation.gif)")
@@ -193,7 +193,7 @@ def create_expanding_animation(snapshots, output_file, fps=10,
         loop=0
     )
     
-    print(f"✓ Saved expanding animation: {output_file}")
+    print(f"Saved expanding animation: {output_file}")
     return True
 
 

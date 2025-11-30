@@ -1,0 +1,559 @@
+2-D DECOMPOSITION - DETAILED EXPLANATION
+========================================
+
+OVERVIEW:
+---------
+2-D decomposition splits a 2D grid into rectangular patches arranged in a 
+grid pattern. Each MPI rank handles one patch, communicating with up to 8 
+neighbors (N, S, E, W, NE, NW, SE, SW).
+
+
+VISUAL REPRESENTATION:
+----------------------
+
+Example: 4 processes (2x2 grid) on a 8x8 Game of Life grid
+
+Global Grid:
+    0 1 2 3 4 5 6 7
+  ┌─────────┬─────────┐
+0 │ Rank 0  │ Rank 1  │
+1 │         │         │
+2 │  (4x4)  │  (4x4)  │
+3 │         │         │
+  ├─────────┼─────────┤
+4 │ Rank 2  │ Rank 3  │
+5 │         │         │
+6 │  (4x4)  │  (4x4)  │
+7 │         │         │
+  └─────────┴─────────┘
+
+Each rank owns a 4x4 interior patch plus 1-cell halo on all sides.
+
+
+RANK 0 DETAILED VIEW (with halo):
+----------------------------------
+
+    -1  0  1  2  3  4
+  ┌──┬──┬──┬──┬──┬──┐
+-1│NW│ N│ N│ N│ N│NE│  ← Halo from neighbors
+  ├──┼──┼──┼──┼──┼──┤
+ 0│ W│██│██│██│██│ E│  ← West halo, interior, East halo
+ 1│ W│██│██│██│██│ E│
+ 2│ W│██│██│██│██│ E│
+ 3│ W│██│██│██│██│ E│
+  ├──┼──┼──┼──┼──┼──┤
+ 4│SW│ S│ S│ S│ S│SE│  ← Halo from neighbors
+  └──┴──┴──┴──┴──┴──┘
+
+██ = Interior cells (owned by this rank)
+NW,N,NE,W,E,SW,S,SE = Halo cells from 8 neighbors
+
+Storage: (4+2) x (4+2) = 6x6 array
+         (interior+2) x (interior+2)
+
+
+NEIGHBOR RELATIONSHIPS:
+-----------------------
+
+For Rank 0 at coordinates (0, 0):
+  North (N):      Rank at (0-1, 0)   → wraps to (1, 0) = Rank 2
+  South (S):      Rank at (0+1, 0)   → (1, 0) = Rank 2
+  West (W):       Rank at (0, 0-1)   → wraps to (0, 1) = Rank 1
+  East (E):       Rank at (0, 0+1)   → (0, 1) = Rank 1
+  NorthWest (NW): Rank at (-1, -1)   → wraps to (1, 1) = Rank 3
+  NorthEast (NE): Rank at (-1, +1)   → wraps to (1, 1) = Rank 3
+  SouthWest (SW): Rank at (+1, -1)   → wraps to (1, 1) = Rank 3
+  SouthEast (SE): Rank at (+1, +1)   → (1, 1) = Rank 3
+
+Toroidal topology: edges wrap around like Pac-Man
+
+
+MPI CARTESIAN TOPOLOGY:
+------------------------
+
+1. CREATE CARTESIAN COMMUNICATOR:
+
+```python
+dims = MPI.Compute_dims(size, [0, 0])
+# Input: size=4, [0,0] means "let MPI decide"
+# Output: dims = [2, 2] (balanced 2D grid)
+
+cart_comm = comm.Create_cart(
+    dims,                    # [2, 2] grid dimensions
+    periods=[True, True],    # Both dimensions wrap (toroidal)
+    reorder=True            # Allow rank reordering for efficiency
+)
+```
+
+What this does:
+  - Creates a virtual 2D grid of processes
+  - Assigns 2D coordinates to each rank
+  - Handles neighbor finding automatically
+  - Enables toroidal wrap-around
+
+
+2. GET MY COORDINATES:
+
+```python
+rank = cart_comm.Get_rank()      # My rank in cartesian comm
+coords = cart_comm.Get_coords(rank)  # My 2D coordinates (row, col)
+```
+
+Example:
+  Rank 0 → coords = (0, 0)  [top-left]
+  Rank 1 → coords = (0, 1)  [top-right]
+  Rank 2 → coords = (1, 0)  [bottom-left]
+  Rank 3 → coords = (1, 1)  [bottom-right]
+
+
+3. FIND NEIGHBORS (Shift operation):
+
+```python
+north, south = cart_comm.Shift(
+    0,   # Direction: 0=rows, 1=cols
+    1    # Displacement: +1 means "next in that direction"
+)
+# Returns: (source, dest) for that direction
+```
+
+For Rank 0:
+  ```python
+  north, south = cart_comm.Shift(0, 1)
+  # north = rank with coords (0-1, 0) = (-1, 0) → wraps to (1, 0) = Rank 2
+  # south = rank with coords (0+1, 0) = (1, 0) = Rank 2
+  
+  west, east = cart_comm.Shift(1, 1)
+  # west = rank with coords (0, 0-1) = (0, -1) → wraps to (0, 1) = Rank 1
+  # east = rank with coords (0, 0+1) = (0, 1) = Rank 1
+  ```
+
+4. DIAGONAL NEIGHBORS (manual calculation):
+
+```python
+nw = cart_comm.Get_cart_rank((
+    (coords[0] - 1) % dims[0],  # Row above, with wrap
+    (coords[1] - 1) % dims[1]   # Col left, with wrap
+))
+```
+
+For Rank 0 with coords=(0,0), dims=[2,2]:
+  ```python
+  nw = cart_comm.Get_cart_rank(((0-1)%2, (0-1)%2)) 
+     = cart_comm.Get_cart_rank((1, 1)) = Rank 3
+  
+  ne = cart_comm.Get_cart_rank(((0-1)%2, (0+1)%2))
+     = cart_comm.Get_cart_rank((1, 0)) = Rank 2
+  
+  sw = cart_comm.Get_cart_rank(((0+1)%2, (0-1)%2))
+     = cart_comm.Get_cart_rank((1, 1)) = Rank 3
+  
+  se = cart_comm.Get_cart_rank(((0+1)%2, (0+1)%2))
+     = cart_comm.Get_cart_rank((1, 1)) = Rank 3
+  ```
+
+
+HALO EXCHANGE - STEP BY STEP:
+------------------------------
+
+Purpose: Each rank needs to send its boundary cells to neighbors
+         and receive neighbor boundary cells into its halo region.
+
+For Rank 0 with 4x4 interior (stored as 6x6 with halo):
+
+  local_grid[0:6, 0:6]  where:
+    - local_grid[1:5, 1:5] = interior (4x4)
+    - Row 0, Row 5, Col 0, Col 5 = halo
+
+
+STEP 1: PREPARE SEND BUFFERS
+-----------------------------
+
+Extract boundary data to send to each neighbor:
+
+```python
+local_rows = 4  # interior rows
+local_cols = 4  # interior cols
+
+# EDGES (send my boundary to neighbors)
+north_row = local_grid[1, 1:5].copy()        # Top interior row
+          # [row=1, cols 1-4] → 4 cells
+
+south_row = local_grid[4, 1:5].copy()        # Bottom interior row
+          # [row=4, cols 1-4] → 4 cells
+
+west_col = local_grid[1:5, 1].copy()         # Left interior column
+         # [rows 1-4, col=1] → 4 cells
+
+east_col = local_grid[1:5, 4].copy()         # Right interior column
+         # [rows 1-4, col=4] → 4 cells
+
+# CORNERS (send my corner to diagonal neighbors)
+nw_cell = np.array([local_grid[1, 1]], dtype=np.int8)  # Top-left
+ne_cell = np.array([local_grid[1, 4]], dtype=np.int8)  # Top-right
+sw_cell = np.array([local_grid[4, 1]], dtype=np.int8)  # Bottom-left
+se_cell = np.array([local_grid[4, 4]], dtype=np.int8)  # Bottom-right
+```
+
+Visual (Rank 0's local_grid):
+```
+    0   1   2   3   4   5
+  ┌───┬───┬───┬───┬───┬───┐
+0 │   │ ← north_row → │   │
+  ├───┼───┼───┼───┼───┼───┤
+1 │   │NW │   │   │NE │   │
+2 │ ↑ │   │   │   │   │ ↑ │
+3 │ w │   │   │   │   │ e │
+4 │ e │   │   │   │   │ a │
+5 │ s │SW │   │   │SE │ s │
+6 │ t │   │   │   │   │ t │
+  ├───┼───┼───┼───┼───┼───┤
+7 │   │ ← south_row → │   │
+  └───┴───┴───┴───┴───┴───┘
+```
+
+
+STEP 2: PREPARE RECEIVE BUFFERS
+--------------------------------
+
+Allocate space to receive data from neighbors:
+
+```python
+recv_north = np.zeros(4, dtype=np.int8)  # Will receive 4 cells from north
+recv_south = np.zeros(4, dtype=np.int8)  # 4 cells from south
+recv_west = np.zeros(4, dtype=np.int8)   # 4 cells from west
+recv_east = np.zeros(4, dtype=np.int8)   # 4 cells from east
+
+recv_nw = np.zeros(1, dtype=np.int8)     # 1 corner cell from NW
+recv_ne = np.zeros(1, dtype=np.int8)     # 1 corner cell from NE
+recv_sw = np.zeros(1, dtype=np.int8)     # 1 corner cell from SW
+recv_se = np.zeros(1, dtype=np.int8)     # 1 corner cell from SE
+```
+
+
+STEP 3: NON-BLOCKING COMMUNICATION
+-----------------------------------
+
+Use Irecv (non-blocking receive) and Isend (non-blocking send):
+
+```python
+reqs = []  # List to track all communication requests
+
+# POST ALL RECEIVES FIRST (good practice)
+reqs.append(cart_comm.Irecv(recv_north, source=north, tag=0))
+reqs.append(cart_comm.Irecv(recv_south, source=south, tag=1))
+reqs.append(cart_comm.Irecv(recv_west, source=west, tag=2))
+reqs.append(cart_comm.Irecv(recv_east, source=east, tag=3))
+reqs.append(cart_comm.Irecv(recv_nw, source=nw, tag=4))
+reqs.append(cart_comm.Irecv(recv_ne, source=ne, tag=5))
+reqs.append(cart_comm.Irecv(recv_sw, source=sw, tag=6))
+reqs.append(cart_comm.Irecv(recv_se, source=se, tag=7))
+
+# THEN POST ALL SENDS
+reqs.append(cart_comm.Isend(south_row, dest=south, tag=0))
+reqs.append(cart_comm.Isend(north_row, dest=north, tag=1))
+reqs.append(cart_comm.Isend(east_col, dest=east, tag=2))
+reqs.append(cart_comm.Isend(west_col, dest=west, tag=3))
+reqs.append(cart_comm.Isend(se_cell, dest=se, tag=4))
+reqs.append(cart_comm.Isend(sw_cell, dest=sw, tag=5))
+reqs.append(cart_comm.Isend(ne_cell, dest=ne, tag=6))
+reqs.append(cart_comm.Isend(nw_cell, dest=nw, tag=7))
+```
+
+Why this order?
+  1. Post receives first: ready to accept incoming data
+  2. Post sends after: start sending data
+  3. All operations are non-blocking → return immediately
+  4. Prevents deadlock (no one waiting for everyone else to send first)
+
+
+MPI CALL BREAKDOWN:
+-------------------
+
+1. Irecv (Non-blocking Receive):
+   ```python
+   req = cart_comm.Irecv(
+       recv_north,     # Buffer to receive into
+       source=north,   # Rank to receive from
+       tag=0          # Message tag (must match sender's tag)
+   )
+   # Returns immediately with a Request object
+   # Actual data transfer happens asynchronously
+   ```
+
+2. Isend (Non-blocking Send):
+   ```python
+   req = cart_comm.Isend(
+       south_row,      # Data to send
+       dest=south,     # Rank to send to
+       tag=0          # Message tag
+   )
+   # Returns immediately with a Request object
+   # Buffer must not be modified until Waitall completes!
+   ```
+
+3. Waitall (Wait for all requests):
+   ```python
+   MPI.Request.Waitall(reqs)
+   # Blocks until ALL communication operations complete
+   # Ensures all sends finished and all receives got data
+   # Only after this can we safely use received data
+   ```
+
+
+TAG SYSTEM:
+-----------
+
+Tags identify which message is which. Pattern:
+  tag=0: North row exchange
+  tag=1: South row exchange
+  tag=2: West column exchange
+  tag=3: East column exchange
+  tag=4: NW corner
+  tag=5: NE corner
+  tag=6: SW corner
+  tag=7: SE corner
+
+Rank 0 sends with tag=0 to South → Rank 2 receives with tag=0 from North
+This matches because:
+  - Rank 0's south row becomes Rank 2's north halo
+  - Tags must match on send/receive pair
+
+
+STEP 4: UPDATE HALO CELLS
+--------------------------
+
+After Waitall completes, copy received data into halo:
+
+```python
+# Update edge halos
+local_grid[0, 1:5] = recv_north      # Top row halo
+local_grid[5, 1:5] = recv_south      # Bottom row halo
+local_grid[1:5, 0] = recv_west       # Left column halo
+local_grid[1:5, 5] = recv_east       # Right column halo
+
+# Update corner halos
+local_grid[0, 0] = recv_nw[0]        # Top-left corner
+local_grid[0, 5] = recv_ne[0]        # Top-right corner
+local_grid[5, 0] = recv_sw[0]        # Bottom-left corner
+local_grid[5, 5] = recv_se[0]        # Bottom-right corner
+```
+
+Now local_grid has complete halo → can compute next generation!
+
+
+COMPUTE NEXT GENERATION (2-D):
+-------------------------------
+
+```python
+def compute_next_generation_2d(local_grid):
+    local_rows = local_grid.shape[0] - 2  # Exclude halo
+    local_cols = local_grid.shape[1] - 2
+    next_gen = np.zeros((local_rows, local_cols), dtype=np.int8)
+    
+    # Loop over interior cells only
+    for i in range(1, local_grid.shape[0] - 1):
+        for j in range(1, local_grid.shape[1] - 1):
+            neighbors = 0
+            
+            # Count 8 neighbors (all in local_grid thanks to halo!)
+            for di in [-1, 0, 1]:
+                for dj in [-1, 0, 1]:
+                    if di == 0 and dj == 0:
+                        continue  # Skip center cell
+                    neighbors += local_grid[i + di, j + dj]
+            
+            # Apply Game of Life rules
+            next_gen[i-1, j-1] = update_cell(local_grid[i, j], neighbors)
+    
+    return next_gen  # Returns only interior (no halo)
+```
+
+Key points:
+  - Loop from 1 to shape-1 (interior cells only)
+  - Neighbors include cells in halo → no special boundary handling!
+  - Return only interior cells (halo will be updated in next exchange)
+
+
+GATHER OPERATION (2-D):
+------------------------
+
+Reconstruct global grid from all patches.
+
+Rank 0 receives from all other ranks:
+
+```python
+def gather_grid_2d(local_grid, cart_comm, dims, ny, nx):
+    rank = cart_comm.Get_rank()
+    
+    # Extract interior (no halo)
+    local_data = local_grid[1:-1, 1:-1].copy()
+    
+    if rank == 0:
+        global_grid = np.zeros((ny, nx), dtype=np.int8)
+        
+        # Receive from each rank and place in correct position
+        for proc_row in range(dims[0]):
+            for proc_col in range(dims[1]):
+                target_rank = cart_comm.Get_cart_rank((proc_row, proc_col))
+                
+                if target_rank == 0:
+                    patch = local_data  # My own data
+                else:
+                    # Receive patch from this rank
+                    patch = np.zeros((nrows, ncols), dtype=np.int8)
+                    cart_comm.Recv(patch, source=target_rank, tag=99)
+                
+                # Calculate where this patch goes in global grid
+                row_start = ... # sum of previous rows
+                col_start = ... # sum of previous cols
+                
+                # Place patch
+                global_grid[row_start:row_start+nrows, 
+                           col_start:col_start+ncols] = patch
+        
+        return global_grid
+    else:
+        # Send my data to rank 0
+        cart_comm.Send(local_data, dest=0, tag=99)
+        return None
+```
+
+
+COMMUNICATION COMPLEXITY ANALYSIS:
+----------------------------------
+
+Per rank per time step:
+
+1. Number of Messages:
+   - 8 sends (N, S, E, W, NE, NW, SE, SW)
+   - 8 receives
+   - Total: 16 non-blocking operations per step
+
+2. Data Volume:
+   For rank with m×n interior cells:
+   - 4 edges: 2m + 2n cells
+   - 4 corners: 4 cells
+   - Total: 2m + 2n + 4 cells per step
+   
+   For balanced decomposition with P processes:
+   - m ≈ √(nx×ny/P)
+   - n ≈ √(nx×ny/P)
+   - Volume ≈ 4√(nx×ny/P) cells
+
+3. Comparison to 1-D:
+   1-D: 2 messages, 2×nx cells per step
+   2-D: 16 messages, 4√(nx×ny/P) + 4 cells per step
+   
+   For large P: 2-D sends less data but more messages
+
+
+SYNCHRONIZATION:
+----------------
+
+Critical synchronization points:
+
+1. After halo exchange:
+   ```python
+   MPI.Request.Waitall(reqs)  # All ranks wait here
+   ```
+   Ensures everyone has received halo before computing
+
+2. Before gather:
+   ```python
+   comm.Barrier()  # Optional explicit barrier
+   ```
+   Ensures all ranks finished computation
+
+3. Implicit in Gather:
+   All ranks must call gather (even if only rank 0 receives)
+
+
+PERFORMANCE CONSIDERATIONS:
+----------------------------
+
+Advantages of 2-D:
+  ✓ Lower data volume for large P
+  ✓ Scales to very large process counts
+  ✓ Balanced communication for square grids
+
+Disadvantages:
+  ✗ More messages (16 vs 4 in 1-D)
+  ✗ Message latency impacts performance
+  ✗ More complex code
+  ✗ Corner synchronization overhead
+
+Optimal when:
+  - P > 100 processes
+  - Communication volume >> message latency
+  - Very large grids where data volume dominates
+
+
+EXAMPLE EXECUTION TRACE (4 ranks, 1 time step):
+------------------------------------------------
+
+Time 0: Initial state
+  - Each rank has interior + halo
+  - Halo contains old/invalid data
+
+Time 1: Post receives
+  - All ranks: Irecv for 8 neighbors → returns immediately
+  - Requests stored in reqs[]
+
+Time 2: Post sends
+  - All ranks: Isend boundary data to 8 neighbors → returns immediately
+  - More requests added to reqs[]
+
+Time 3: Waitall
+  - All ranks: Block here until all 16 operations complete
+  - MPI runtime transfers data between ranks
+  - When Waitall returns, all halos are updated
+
+Time 4: Compute
+  - Each rank: compute_next_generation_2d()
+  - Uses halo cells to compute boundary
+  - No communication during compute!
+
+Time 5: Update local grid
+  - Replace interior with new generation
+  - Halo is now outdated (will be fixed next iteration)
+
+Repeat for each time step!
+
+
+SUMMARY OF MPI CALLS IN 2-D:
+-----------------------------
+
+1. MPI.Compute_dims(size, [0,0])
+   - Compute balanced 2D grid dimensions
+
+2. comm.Create_cart(dims, periods, reorder)
+   - Create cartesian topology communicator
+
+3. cart_comm.Get_rank()
+   - Get my rank in cartesian communicator
+
+4. cart_comm.Get_coords(rank)
+   - Get 2D coordinates from rank
+
+5. cart_comm.Shift(direction, displacement)
+   - Find neighbors in cardinal directions
+
+6. cart_comm.Get_cart_rank(coords)
+   - Convert coordinates to rank (for diagonals)
+
+7. cart_comm.Irecv(buffer, source, tag)
+   - Non-blocking receive (8× per iteration)
+
+8. cart_comm.Isend(data, dest, tag)
+   - Non-blocking send (8× per iteration)
+
+9. MPI.Request.Waitall(requests)
+   - Wait for all communication to complete
+
+10. cart_comm.Send/Recv (in gather)
+    - Blocking send/receive for final gathering
+
+
+This completes the detailed explanation of 2-D decomposition!
+
+

@@ -1,0 +1,62 @@
+════════════════════════════════════════════════════════
+  Conway's Game of Life - Complete HPC Run
+════════════════════════════════════════════════════════
+Job ID: 3925211
+Nodes: 1
+Total tasks: 52
+Start time: Sun Nov 30 16:48:30 +04 2025
+
+Activating conda environment...
+✓ Environment ready
+
+════════════════════════════════════════════════════════
+  PART 1/2: Running Performance Benchmark
+════════════════════════════════════════════════════════
+
+Benchmark configuration:
+  Grid: 512x512
+  Steps: 100
+  Pattern: glider_gun
+
+─────────────────────────────────────────
+Testing with np=1...
+  Time: 83.914761s
+  Speedup: 1.00x
+  Efficiency: 100.0%
+  Checksum: 63
+─────────────────────────────────────────
+Testing with np=2...
+  Time: 44.407955s
+  Speedup: 1.88x
+  Efficiency: 90.0%
+  Checksum: 63
+─────────────────────────────────────────
+Testing with np=4...
+  Time: 20.955714s
+  Speedup: 4.00x
+  Efficiency: 100.0%
+  Checksum: 63
+─────────────────────────────────────────
+Testing with np=8...
+  Time: 10.475785s
+  Speedup: 8.01x
+  Efficiency: 100.0%
+  Checksum: 63
+─────────────────────────────────────────
+Testing with np=16...
+  Time: 5.297290s
+  Speedup: 15.84x
+  Efficiency: 90.0%
+  Checksum: 63
+
+✓ Benchmark complete!
+
+Benchmark Results Summary:
+─────────────────────────────────────────
+# ranks,time_seconds,speedup,efficiency
+1,83.914761,1.00,100.0
+2,44.407955,1.88,90.0
+4,20.955714,4.00,100.0
+8,10.475785,8.01,100.0
+16,5.297290,15.84,90.0
+─────────────────────────────────────────

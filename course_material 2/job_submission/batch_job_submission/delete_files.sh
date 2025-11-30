@@ -1,2 +1,0 @@
-rm ./*.out
-rm ./*.err
