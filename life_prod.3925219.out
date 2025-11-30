@@ -1,0 +1,24 @@
+════════════════════════════════════════════════════════
+  Conway's Game of Life - Production Run
+════════════════════════════════════════════════════════
+Job ID: 3925219
+Nodes: 1
+Total tasks: 32
+Start time: Sun Nov 30 17:22:31 +04 2025
+
+Activating conda environment...
+✓ Environment ready
+
+Starting production simulation...
+
+Production configuration:
+  Grid: 16384x16384
+  Steps: 2000
+  Pattern: glider_gun
+  Save interval: 100
+  MPI processes: 32
+
+/apps/ku/gcc-9_3/openmpi/4.0/bin/mpirun
+Initialized glider_gun pattern on 16384x16384 grid
+Running with 32 MPI processes for 2000 steps
+Saving snapshots to 'snapshots/' every 100 steps
