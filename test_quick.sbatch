@@ -21,9 +21,23 @@ module load gcc/9.3
 module load openmpi/4.0
 module load miniconda/3
 
+# Create conda environment if it doesn't exist
+if [ ! -d "./env" ]; then
+    echo "Creating conda environment..."
+    conda env create -f environment.yml --prefix ./env
+fi
+
 # Activate conda environment
 conda deactivate
 conda activate ./env
+
+# Verify packages are installed
+echo "Python version:"
+python --version
+echo ""
+echo "Checking packages:"
+python -c "import numpy; print('numpy:', numpy.__version__)"
+python -c "import mpi4py; print('mpi4py:', mpi4py.__version__)"
 
 # Run quick test
 which mpirun

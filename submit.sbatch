@@ -20,6 +20,12 @@ module load gcc/9.3
 module load openmpi/4.0
 module load miniconda/3
 
+# Create conda environment if it doesn't exist
+if [ ! -d "./env" ]; then
+    echo "Creating conda environment (first run)..."
+    conda env create -f environment.yml --prefix ./env
+fi
+
 # Activate conda environment
 conda deactivate
 conda activate ./env
