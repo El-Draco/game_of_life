@@ -1,0 +1,58 @@
+════════════════════════════════════════════════════════
+  Conway's Game of Life - BACKUP Run (Fast & Safe)
+════════════════════════════════════════════════════════
+Job ID: 3925238
+Nodes: 2
+Total tasks: 104
+Start time: Sun Nov 30 18:05:32 +04 2025
+
+Activating conda environment...
+✓ Environment ready
+
+Starting backup simulation...
+
+Backup configuration:
+  Grid: 4096×4096 (16.7M cells)
+  Steps: 2000
+  Pattern: glider_gun
+  Save interval: 100
+  MPI processes: 104 (2 nodes × 52 cores)
+  Expected time: ~30 minutes
+
+/apps/ku/gcc-9_3/openmpi/4.0/bin/mpirun
+Initialized glider_gun pattern on 4096x4096 grid
+Running with 104 MPI processes for 2000 steps
+Saving snapshots to 'snapshots/' every 100 steps
+BENCHMARK: ranks=104, grid=4096x4096, steps=2000, time=1368.161514, time_per_step=0.684081
+BENCHMARK: checksum=0, alive_cells=0
+
+✓ Backup simulation complete!
+
+════════════════════════════════════════════════════════
+  Job Complete - Summary
+════════════════════════════════════════════════════════
+
+End time: Sun Nov 30 18:28:29 +04 2025
+
+Generated files:
+  💾 Snapshots: snapshots/step_*.npz
+  📝 Logs:      life_backup.3925238.out/err
+
+Snapshot count: 21
+Grid size: 4096×4096
+Total steps: 2000
+MPI processes: 104
+
+Next steps (run locally after downloading snapshots):
+
+1. Download snapshots:
+   scp -r username@almesbar:~/dist_sys/snapshots .
+
+2. Create animation:
+   python visualize.py --input-dir snapshots --output backup_animation.gif
+
+3. Create heatmap visualization:
+   python visualize.py --input-dir snapshots --output backup_heatmap.gif \
+       --show-ranks --ranks 104 --fps 5
+
+════════════════════════════════════════════════════════
