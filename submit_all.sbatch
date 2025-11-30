@@ -5,7 +5,8 @@
 #SBATCH --nodes=4
 #SBATCH --ntasks-per-node=8
 #SBATCH --time=04:00:00
-#SBATCH --partition=compute
+#SBATCH --partition=prod
+#SBATCH --account=hpc_project_code
 
 # Conway's Game of Life - Complete Run
 # Runs BOTH benchmark and production simulation in one job
@@ -25,7 +26,7 @@ mkdir -p logs snapshots benchmark_data
 
 # Load modules (adjust for your HPC)
 module purge
-module load python/3.11
+module load python/3.10.5
 module load openmpi/4.1.4
 
 # Setup Python environment

@@ -28,7 +28,7 @@ rsync -avz --exclude='.venv' --exclude='.git' \
 
 Your scripts use these modules (lines 28-29 in submit_all.sbatch):
 ```bash
-module load python/3.11
+module load python/3.10.5
 module load openmpi/4.1.4
 ```
 
@@ -41,7 +41,7 @@ module avail openmpi   # Check OpenMPI versions
 ```
 
 **Common variations:**
-- `python/3.11` or `python/3.11.5` or `python3/3.11`
+- `python/3.10.5` or `python/3.10` or `python3/3.10.5`
 - `openmpi/4.1.4` or `mpi/openmpi/4.1.4` or `openmpi/4.1`
 - Some HPCs use `intelmpi` instead of `openmpi`
 
@@ -93,7 +93,7 @@ cat > test_quick.sbatch << 'EOF'
 #SBATCH --partition=compute    # Adjust if needed!
 
 module purge
-module load python/3.11         # Adjust if needed!
+module load python/3.10.5       # Adjust if needed!
 module load openmpi/4.1.4       # Adjust if needed!
 
 # Test setup

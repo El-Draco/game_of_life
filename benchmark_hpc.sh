@@ -1,17 +1,18 @@
 #!/bin/bash
 #SBATCH --job-name=life_bench
-#SBATCH --output=logs/bench_%j.out
-#SBATCH --error=logs/bench_%j.err
+#SBATCH --output=logs/%x-%j.out
+#SBATCH --error=logs/%x-%j.err
 #SBATCH --nodes=4
 #SBATCH --ntasks-per-node=8
 #SBATCH --time=01:00:00
-#SBATCH --partition=compute
+#SBATCH --partition=prod
+#SBATCH --account=hpc_project_code
 
 # HPC Performance Benchmarking
 # Measures performance on large grids with many processes
 
 module purge
-module load python/3.11
+module load python/3.10.5
 module load openmpi/4.1.4
 
 # Setup Python environment (adjust if using uv on HPC)

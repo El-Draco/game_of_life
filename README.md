@@ -158,7 +158,7 @@ We chose 1-D row decomposition for several practical reasons:
 
 ## 🔧 Requirements
 
-- Python 3.12+
+- Python 3.10.5+
 - `mpi4py` - MPI bindings
 - `numpy` - Array operations
 - `matplotlib` - Visualization (optional, for post-processing)

@@ -74,7 +74,7 @@ sbatch <<EOF
 #SBATCH --time=02:00:00
 #SBATCH --partition=compute
 
-module load python/3.11 openmpi/4.1.4
+module load python/3.10.5 openmpi/4.1.4
 source .venv/bin/activate
 
 mkdir -p logs snapshots_64k
