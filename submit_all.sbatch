@@ -6,7 +6,7 @@
 #SBATCH --ntasks-per-node=8
 #SBATCH --time=04:00:00
 #SBATCH --partition=prod
-#SBATCH --account=hpc_project_code
+#SBATCH --account=teach0026
 
 # Conway's Game of Life - Complete Run
 # Runs BOTH benchmark and production simulation in one job
@@ -24,21 +24,16 @@ echo ""
 # Create directories
 mkdir -p logs snapshots benchmark_data
 
-# Load modules (adjust for your HPC)
+# Load modules (Almesbar standard modules)
 module purge
-module load python/3.10.5
-module load openmpi/4.1.4
+module load gcc/9.3
+module load openmpi/4.0
+module load miniconda/3
 
-# Setup Python environment
-echo "Setting up Python environment..."
-if [ ! -d ".venv" ]; then
-    python3 -m venv .venv
-    source .venv/bin/activate
-    pip install --upgrade pip
-    pip install numpy mpi4py matplotlib scipy pillow
-else
-    source .venv/bin/activate
-fi
+# Activate conda environment
+echo "Activating conda environment..."
+conda deactivate
+conda activate ./env
 echo "✓ Environment ready"
 echo ""
 
@@ -80,6 +75,7 @@ for NP in 1 2 4 8 16 32; do
     OUTPUT_DIR="benchmark_data/np${NP}"
     
     mpirun -np ${NP} python life_mpi.py \
+        --decomp rows \
         --nx ${BENCH_GRID} --ny ${BENCH_GRID} \
         --steps ${BENCH_STEPS} \
         --pattern ${BENCH_PATTERN} \
@@ -144,10 +140,12 @@ echo "  Save interval: ${PROD_INTERVAL}"
 echo "  MPI processes: $SLURM_NTASKS"
 echo ""
 
-mpirun -np $SLURM_NTASKS python life_mpi.py \
+which mpirun
+mpirun python life_mpi.py \
     --nx ${PROD_NX} \
     --ny ${PROD_NY} \
     --steps ${PROD_STEPS} \
+    --decomp rows \
     --pattern ${PROD_PATTERN} \
     --seed ${PROD_SEED} \
     --output-dir snapshots \

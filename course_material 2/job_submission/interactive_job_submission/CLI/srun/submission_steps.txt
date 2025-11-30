@@ -1,0 +1,3 @@
+module load matlab/R2021a
+
+srun --nodes=1 --ntasks=1 --partition=prod --time=1:00:00 --account projectname --pty matlab -nodesktop

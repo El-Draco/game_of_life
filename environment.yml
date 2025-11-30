@@ -1,0 +1,13 @@
+name: null
+channels:
+  - defaults
+dependencies:
+  - python=3.10
+  - pip
+  - numpy
+  - matplotlib
+  - scipy
+  - pillow
+  - pip:
+    - mpi4py
+

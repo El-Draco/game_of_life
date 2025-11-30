@@ -1,26 +1,39 @@
 #!/bin/bash
-#SBATCH --job-name=life_test
-#SBATCH --output=logs/%x-%j.out
-#SBATCH --error=logs/%x-%j.err
-#SBATCH --nodes=1
-#SBATCH --ntasks=4
-#SBATCH --time=00:10:00
-#SBATCH --partition=devel
-#SBATCH --account=teach0026
+#SBATCH --nodes=1                        # Number of compute nodes
+#SBATCH --ntasks=4                       # Total MPI processes
+#SBATCH --ntasks-per-node=4              # Tasks per node
+#SBATCH --job-name=life_test             # Job name
+#SBATCH --time=00:10:00                  # Time limit (10 minutes for quick test)
+#SBATCH --partition=devel                # Use devel queue for quick tests
+#SBATCH --account=teach0026              # Project account
+#SBATCH --output=life_test.%j.out        # Standard output
+#SBATCH --error=life_test.%j.err         # Error output
 
+# Quick test job for Game of Life
+# Tests that everything works before running full simulation
+
+# Create output directories
 mkdir -p logs test_output
 
+# Load modules (Almesbar standard modules)
 module purge
-module load python/3.10.5
-module load openmpi/4.1.4
+module load gcc/9.3
+module load openmpi/4.0
+module load miniconda/3
 
-source .venv/bin/activate
+# Activate conda environment
+conda deactivate
+conda activate ./env
 
-mpirun -np 4 python life_mpi.py \
-    --nx 128 --ny 128 \
+# Run quick test
+which mpirun
+mpirun python life_mpi.py \
+    --nx 128 \
+    --ny 128 \
     --steps 10 \
     --decomp rows \
     --pattern glider \
+    --seed 42 \
     --output-dir test_output \
     --save-interval 0 \
     --benchmark

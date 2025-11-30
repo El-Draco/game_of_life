@@ -1,0 +1,11 @@
+name: null
+channels:
+  - defaults
+dependencies:
+  - python
+  - pip
+  - numpy
+  - plotly
+  - pip:
+    - mpi4py
+
